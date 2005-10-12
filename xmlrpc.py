@@ -3,24 +3,29 @@
 import sys
 import xmlrpclib
 
-s = xmlrpclib.ServerProxy("https://rhn.redhat.com/rpc/api")
-print "RHN API Version: %s" % s.api.system_version()
+from rhnapi import RHNClient
 
-session = s.auth.login('ncsurhel', 'Cfvls20', 1000)
-print "Session ID = %s" % session
+rhn = RHNClient("https://rhn.redhat.com/rpc/api")
+rhn.connect()
+
+print "RHN API Version: %s" % rhn.server.api.system_version()
+
+print "Session ID = %s" % rhn.session
+
+s = rhn.server
 
 group_tally = {}
 ungrouped = []
-systems = s.system.list_user_systems(session)
+systems = s.system.list_user_systems(rhn.session)
 c = 0
 
 for system in systems:
-    c = c + 1
-    grps = s.system.list_groups(session, system["id"])
-    flag = 0
-    
     sys.stderr.write("Working on: %s\n" % system["name"])
 
+    c = c + 1
+    grps = s.system.list_groups(rhn.session, system["id"])
+    flag = 0
+    
     for grp in grps:
         name = grp["system_group_name"]
         if grp["subscribed"] > 0:
