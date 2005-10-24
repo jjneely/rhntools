@@ -9,6 +9,7 @@ create table CLIENTS (
 
 create table GROUPINFO (
     groupid     INTEGER PRIMARY KEY,
+    rhnsid      INTEGER,
     name        TEXT,
     notes       TEXT
 );

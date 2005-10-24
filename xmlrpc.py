@@ -27,16 +27,19 @@ def populate(db, rhn):
 
     for system in systems:
         sys.stderr.write("Working on: %s\n" % system["name"])
-        db.addSystem(system)
+        clientid = db.addSystem(system)
+        subscribedTo = []
 
         c = c + 1
         grps = rhn.server.system.list_groups(rhn.session, system["id"])
         flag = 0
     
         for grp in grps:
+            groupid = db.addGroup(grp)
             name = grp["system_group_name"]
             if grp["subscribed"] > 0:
                 flag = 1
+                subscribedTo.append(groupid)
                 if group_tally.has_key(name):
                     group_tally[name] = group_tally[name] + 1
                 else:
@@ -44,6 +47,10 @@ def populate(db, rhn):
 
         if not flag:
             ungrouped.append(system)
+
+        db.subscribeGroup(clientid, subscribedTo)
+
+    db.commit()
 
     # Print out the group_tally nicely
     for key in group_tally.keys():
