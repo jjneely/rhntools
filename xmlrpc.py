@@ -1,50 +1,61 @@
 #!/usr/bin/python
 
 import sys
-import xmlrpclib
-
 from rhnapi import RHNClient
+import rhndb
+import pysqlite
+import config
 
-rhn = RHNClient("https://rhn.redhat.com/rpc/api")
-rhn.connect()
+def main():
 
-print "RHN API Version: %s" % rhn.server.api.system_version()
+    dbcfg = config.DBConfig()
 
-print "Session ID = %s" % rhn.session
+    rhn = RHNClient("https://rhn.linux.ncsu.edu/rpc/api")
+    rhn.connect()
 
-s = rhn.server
+    sdb = pysqlite.PySqliteDB(dbcfg)
+    db = rhndb.RHNStore(sdb)
 
-group_tally = {}
-ungrouped = []
-systems = s.system.list_user_systems(rhn.session)
-c = 0
+    populate(db, rhn)
 
-for system in systems:
-    sys.stderr.write("Working on: %s\n" % system["name"])
+def populate(db, rhn):
+    group_tally = {}
+    ungrouped = []
+    sids = []
+    systems = rhn.server.system.list_user_systems(rhn.session)
+    c = 0
 
-    c = c + 1
-    grps = s.system.list_groups(rhn.session, system["id"])
-    flag = 0
+    for system in systems:
+        sys.stderr.write("Working on: %s\n" % system["name"])
+        db.addSystem(system)
+
+        c = c + 1
+        grps = rhn.server.system.list_groups(rhn.session, system["id"])
+        flag = 0
     
-    for grp in grps:
-        name = grp["system_group_name"]
-        if grp["subscribed"] > 0:
-            flag = 1
-            if group_tally.has_key(name):
-                group_tally[name] = group_tally[name] + 1
-            else:
-                group_tally[name] = 1
+        for grp in grps:
+            name = grp["system_group_name"]
+            if grp["subscribed"] > 0:
+                flag = 1
+                if group_tally.has_key(name):
+                    group_tally[name] = group_tally[name] + 1
+                else:
+                    group_tally[name] = 1
 
-    if not flag:
-        ungrouped.append(system)
+        if not flag:
+            ungrouped.append(system)
 
-# Print out the group_tally nicely
-for key in group_tally.keys():
-    print "%s: %s" % (key, group_tally[key])
+    # Print out the group_tally nicely
+    for key in group_tally.keys():
+        print "%s: %s" % (key, group_tally[key])
 
-print "Ungrouped Systems:"
-for system in ungrouped:
-    print "   %s" % system["name"]
+    print "Ungrouped Systems:"
+    for system in ungrouped:
+        print "   %s" % system["name"]
 
-print "Total Systems: " + str(c)
+    print "Total Systems: " + str(c)
+
+
+if __name__ == "__main__":
+    main()
 

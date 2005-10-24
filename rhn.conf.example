@@ -1,0 +1,3 @@
+[db]
+db=rhn.sqlite
+db_type=pysqlite
