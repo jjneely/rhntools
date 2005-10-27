@@ -10,10 +10,12 @@ class RHNClient(object):
         self.url = serverURL
 
 
-    def connect(self):
+    def connect(self, user=None, password=None):
         self.server = xmlrpclib.ServerProxy(self.url)
-        user, pw = self.auth()
-        self.session = self.server.auth.login(user, pw, 3600)
+        if user == None or password == None:
+            user, password = self.auth()
+            
+        self.session = self.server.auth.login(user, password, 3600)
 
 
     def auth(self):

@@ -1,0 +1,29 @@
+<html>
+<head>
+<title>RHN Usage Statistics</title>
+</head>
+
+<body>
+
+    <p>Generated On: <b tal:content="date"></b></p>
+    <p>Total Licenses Used: <b tal:content="total"></b></p>
+    
+<table border="1">
+  <tr>
+    <th>Group Name</th>
+    <th>Licenses</th>
+    <th>Percentage</th>
+  </tr>
+
+  <div tal:repeat="foo table">
+    <tr>
+      <td tal:content="foo/name"></td>
+      <td tal:content="foo/count"></td>
+      <td tal:content="foo/percent"></td>
+    </tr>
+  </div>
+</table>
+
+</body>
+</html>
+

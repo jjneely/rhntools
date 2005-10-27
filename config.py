@@ -13,6 +13,20 @@ class Configuration(object):
 
     def get(self, key):
         return self.cfg.get(self.type, key)
+
+
+class RHNConfig(Configuration):
+
+    type = "rhn"
+
+    def getURL(self):
+        return self.get("url")
+
+    def getUserName(self):
+        return self.get("user")
+
+    def getPassword(self):
+        return self.get("password")
     
 
 class DBConfig(Configuration):

@@ -69,3 +69,46 @@ class RHNStore(object):
 
         self.c.execute(q1, ())
         self.c.execute(q2, clients)
+
+    def getGroups(self):
+        q = "select groupid from GROUPINFO"
+
+        self.c.execute(q)
+        ret = self.c.fetchone()
+        list = []
+        while ret != None:
+            list.append(ret[0])
+            ret = self.c.fetchone()
+
+        return list
+
+    def getGroupName(self, gid):
+        q = "select name from GROUPINFO where groupid = %s"
+
+        self.c.execute(q, (gid,))
+        ret = self.c.fetchone()
+
+        if ret == None:
+            return None
+        else:
+            return ret[0]
+
+    def getTotalCount(self):
+        q = "select count(*) from CLIENTS where active = 1"
+
+        self.c.execute(q)
+        ret = self.c.fetchone()
+
+        return ret[0]
+
+    def getGroupCount(self, gid):
+        q = """select count(*) from GROUPS, CLIENTS where
+               GROUPS.clientid = CLIENTS.clientid and
+               CLIENTS.active = 1 and
+               GROUPS.groupid = %s"""
+
+        self.c.execute(q, (gid,))
+        ret = self.c.fetchone()
+
+        return ret[0]
+
