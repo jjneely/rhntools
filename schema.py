@@ -4,7 +4,8 @@ create table CLIENTS (
     clientid    INTEGER PRIMARY KEY,
     rhnsid      INTEGER,
     name        TEXT,
-    lastcheckin TEXT
+    lastcheckin TEXT,
+    active      INTEGER
 );
 
 create table GROUPINFO (

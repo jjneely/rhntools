@@ -21,7 +21,7 @@ def main():
 def populate(db, rhn):
     group_tally = {}
     ungrouped = []
-    sids = []
+    clients = []
     systems = rhn.server.system.list_user_systems(rhn.session)
     c = 0
 
@@ -29,6 +29,7 @@ def populate(db, rhn):
         sys.stderr.write("Working on: %s\n" % system["name"])
         clientid = db.addSystem(system)
         subscribedTo = []
+        clients.append(clientid)
 
         c = c + 1
         grps = rhn.server.system.list_groups(rhn.session, system["id"])
@@ -50,6 +51,7 @@ def populate(db, rhn):
 
         db.subscribeGroup(clientid, subscribedTo)
 
+    db.markActive(clients)
     db.commit()
 
     # Print out the group_tally nicely

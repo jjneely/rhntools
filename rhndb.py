@@ -54,6 +54,18 @@ class RHNStore(object):
         for id in groupids:
             q2 = "%s (%s, %s)," % (q2, clientid, id)
 
-        print q2[:-1]
         self.c.execute(q2[:-1], ())
 
+    def markActive(self, clients):
+        q = ""
+        for id in clients:
+            if q == "":
+                q = "clientid = %s"
+            else:
+                q = q + " or clientid = %s"
+
+        q1 = """update CLIENTS set active = 0"""
+        q2 = """update CLIENTS set active = 1 where """ + q
+
+        self.c.execute(q1, ())
+        self.c.execute(q2, clients)
