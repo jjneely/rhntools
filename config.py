@@ -8,8 +8,8 @@ class Configuration(object):
         self.cfg = ConfigParser.ConfigParser()
         files = self.cfg.read(['rhn.conf'])
 
-        if files == None:
-            raise Exception("Configuration file not found.")
+        #if files == None:
+        #    raise Exception("Configuration file not found.")
 
     def get(self, key):
         return self.cfg.get(self.type, key)
