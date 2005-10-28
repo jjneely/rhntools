@@ -66,7 +66,7 @@ def doHTML(db):
     context = simpleTALES.Context()
     context.addGlobal("total", total)
     context.addGlobal("table", table)
-    context.addGlobal("date", time.strftime("%A %B %d %H:%M:S %Z %Y"))
+    context.addGlobal("date", time.strftime("%A %B %d %H:%M:%S %Z %Y"))
 
     template = simpleTAL.compileHTMLTemplate(open(templatefile))
     output = open(file, 'w')
