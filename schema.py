@@ -5,7 +5,8 @@ create table CLIENTS (
     rhnsid      INTEGER,
     name        TEXT,
     lastcheckin TEXT,
-    active      INTEGER
+    active      INTEGER,
+    rl          INTEGER
 );
 
 create table GROUPINFO (

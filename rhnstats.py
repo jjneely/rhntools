@@ -6,7 +6,19 @@ import rhndb
 import pysqlite
 import config
 import time
+from sets import Set
 from simpletal import simpleTAL, simpleTALES
+
+# What channels define Realm Linux?
+RLChannels = Set(["realmlinux-as4",
+                  "realmlinux-ws4",
+                  "realmlinux-as3",
+                  "realmlinux-ws3",
+                  "realmlinux-ws4-amd64",
+                  "realmlinux-as4-amd64",
+                  "realmlinux-ws3-amd64",
+                  "realmlinux-as3-amd64",
+                 ])
 
 def main():
 
@@ -24,6 +36,7 @@ def main():
 
 def populate(db, rhn):
     clients = []
+    rlclients = []
     systems = rhn.server.system.list_user_systems(rhn.session)
 
     for system in systems:
@@ -31,6 +44,15 @@ def populate(db, rhn):
         clientid = db.addSystem(system)
         subscribedTo = []
         clients.append(clientid)
+
+        # Sub Channels available for subscription, does not include
+        # already subscribed sub channels.
+        channels =  rhn.server.system.list_child_channels(rhn.session, 
+                                                          system["id"])
+        chanLabels = Set([ i['LABEL'] for i in channels ])
+
+        if len(RLChannels.intersection(chanLabels)) == 0:
+            rlclients.append(clientid)
 
         grps = rhn.server.system.list_groups(rhn.session, system["id"])
         flag = 0
@@ -45,6 +67,7 @@ def populate(db, rhn):
         db.subscribeGroup(clientid, subscribedTo)
 
     db.markActive(clients)
+    db.markRL(rlclients)
     db.commit()
 
 def doHTML(db):
@@ -58,6 +81,7 @@ def doHTML(db):
         d = {}
         d["name"] = db.getGroupName(group)
         d["count"] = db.getGroupCount(group)
+        d["rlcount"] = db.getGroupRLCount(group)
         p = int(10000 * float(d["count"]) / float(total))
         d["percent"] = p / 100.0
         
@@ -65,6 +89,7 @@ def doHTML(db):
 
     context = simpleTALES.Context()
     context.addGlobal("total", total)
+    context.addGlobal("totalrl", db.getTotalRLCount())
     context.addGlobal("table", table)
     context.addGlobal("date", time.strftime("%A %B %d %H:%M:%S %Z %Y"))
 

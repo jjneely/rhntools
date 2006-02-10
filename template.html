@@ -15,11 +15,13 @@
     
     <p>Generated On: <b tal:content="date"></b></p>
     <p>Total Licenses Used: <b tal:content="total"></b></p>
+    <p>Total Realm Linux Clients: <b tal:content="totalrl"></b></p>
     
 <table border="1">
   <tr>
     <th>Group Name</th>
-    <th>Licenses</th>
+    <th>Licenses Used</th>
+    <th>Realm Linux Machines</th>
     <th>Percentage</th>
   </tr>
 
@@ -27,6 +29,7 @@
     <tr>
       <td tal:content="foo/name"></td>
       <td tal:content="foo/count"></td>
+      <td tal:content="foo/rlcount"></td>
       <td tal:content="foo/percent"></td>
     </tr>
   </div>
