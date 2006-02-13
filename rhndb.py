@@ -50,12 +50,10 @@ class RHNStore(object):
         if len(groupids) == 0:
             return
 
-        q2 = """insert into GROUPS (clientid, groupid) values """
+        q2 = """insert into GROUPS (clientid, groupid) values (%s, %s)"""
         for id in groupids:
-            q2 = "%s (%s, %s)," % (q2, clientid, id)
-
-        self.c.execute(q2[:-1], ())
-
+            self.c.execute(q2, (clientid, id))
+    
     def markRL(self, clients):
         q = ""
         for id in clients:
