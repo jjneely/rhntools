@@ -58,7 +58,7 @@ def populate(db, rhn):
     systems = rhn.server.system.list_user_systems(rhn.session)
 
     for system in systems:
-        #sys.stderr.write("Working on: %s\n" % system["name"])
+        sys.stderr.write("Working on: %s\n" % system["name"])
         clientid = db.addSystem(system)
         subscribedTo = []
         clients.append(clientid)
