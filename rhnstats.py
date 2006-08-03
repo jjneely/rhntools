@@ -7,8 +7,8 @@ import pysqlite
 import config
 import time
 import optparse
+import kid
 from sets import Set
-from simpletal import simpleTAL, simpleTALES
 
 # What channels define Realm Linux?
 RLChannels = Set(["realmlinux-as4",
@@ -119,7 +119,7 @@ def doCSV(db):
     
 def doHTML(db):
     file = "rhn.phtml"
-    templatefile = "template.html"
+    templatefile = "template.kid"
     table = []
 
     total = db.getTotalCount()
@@ -134,17 +134,13 @@ def doHTML(db):
         
         table.append(d)
 
-    context = simpleTALES.Context()
-    context.addGlobal("total", total)
-    context.addGlobal("totalrl", db.getTotalRLCount())
-    context.addGlobal("table", table)
-    context.addGlobal("date", time.strftime("%A %B %d %H:%M:%S %Z %Y"))
+    template = kid.Template(file=templatefile)
+    template.total = total
+    template.totalrl = db.getTotalRLCount()
+    template.table = table
+    template.date = time.strftime("%A %B %d %H:%M:%S %Z %Y")
 
-    template = simpleTAL.compileHTMLTemplate(open(templatefile))
-    output = open(file, 'w')
-    
-    template.expand(context, output)
-    output.close()
+    template.write(file, fragment=True)
     
 
 if __name__ == "__main__":

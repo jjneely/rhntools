@@ -1,4 +1,6 @@
-<html>
+<?xml version='1.0' encoding='utf-8'?>
+<html xmlns="http://www.w3.org/1999/xhtml"
+      xmlns:py="http://purl.org/kid/ns#">
 <head>
 <title>RHN Usage Statistics</title>
 </head>
@@ -13,9 +15,9 @@
     contact the webmaster linked at the bottom of the page.
     </p>
     
-    <p>Generated On: <b tal:content="date"></b></p>
-    <p>Total Licenses Used: <b tal:content="total"></b></p>
-    <p>Total Realm Linux Clients: <b tal:content="totalrl"></b></p>
+    <p>Generated On: <b py:content="date">4th of Juvember</b></p>
+    <p>Total Licenses Used: <b py:content="total">This is fake</b></p>
+    <p>Total Realm Linux Clients: <b py:content="totalrl">Even faker</b></p>
     
 <table border="1">
   <tr>
@@ -25,12 +27,12 @@
     <th>Percentage</th>
   </tr>
 
-  <div tal:repeat="foo table">
+  <div py:for="foo in table">
     <tr>
-      <td tal:content="foo/name"></td>
-      <td tal:content="foo/count"></td>
-      <td tal:content="foo/rlcount"></td>
-      <td tal:content="foo/percent"></td>
+      <td py:content="foo['name']">College of Underwater Basket Weaving</td>
+      <td py:content="foo['count']">42</td>
+      <td py:content="foo['rlcount']">41</td>
+      <td py:content="foo['percent']">86.4</td>
     </tr>
   </div>
 </table>
