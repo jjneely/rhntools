@@ -1,9 +1,11 @@
-AddHandler python-program .py
-PythonHandler ks
-PythonDebug On 
+#AddHandler python-program .py
+#PythonHandler ks
+#PythonDebug On 
 
 <Files *.conf >
     deny from all
 </Files>
 
+AuthType WRAP
+require known-user
 

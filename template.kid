@@ -3,9 +3,16 @@
       xmlns:py="http://purl.org/kid/ns#">
 <head>
 <title>RHN Usage Statistics</title>
-</head>
+<?php
+include("../Templates/dochead.php");
+?>
 
+</head>
 <body>
+
+  <?php
+  include("../Templates/clsheader.php");
+  ?>
 
     <p>
     This web site is automatically generated to aid in billing out NCSU's
@@ -36,6 +43,10 @@
     </tr>
   </div>
 </table>
+
+  <?php
+  include("../Templates/clsfooter.php");
+  ?>
 
 </body>
 </html>
