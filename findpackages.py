@@ -2,6 +2,7 @@
 
 import os
 import os.path
+import sys
 import config
 import string
 from types import IntType, FloatType, StringType
@@ -53,7 +54,10 @@ def bruteForceFind(p):
             e, v, r = stringToVersion(evr)
 
             # Epoch
-            if p['package_epoch'] == "" and e in [0, "0", ""]:
+            if evr.find(':') == -1:
+                # The evr directory doesn't contain the epoch field
+                pass
+            elif p['package_epoch'] == "" and e in [0, "0", ""]:
                 pass
             elif p['package_epoch'] == int(e):
                 pass
@@ -116,7 +120,6 @@ def bruteForceFind(p):
             for file in os.listdir(bindir):
                 if file.endswith("%(package_arch_name)s.rpm" % p):
                     binpath = os.path.join(bindir, file)
-                    print binpath
                     break
 
             # and one src rpm file
