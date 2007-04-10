@@ -2,10 +2,10 @@ import pickle
 import MySQLdb
 import getpass
 
-host="mysql01.unity.ncsu.edu"
-user="cls_admin"
+host="mysql02.unity.ncsu.edu"
+user="realmlinux"
 passwd = getpass.getpass("CLS Mysql Password:")
-db="campuslinux"
+db="realmlinux"
 
 conn = MySQLdb.connect(host=host, user=user, passwd=passwd, db=db)
 cursor = conn.cursor()
@@ -21,4 +21,6 @@ s = pickle.dumps(l)
 fd = open("hosts.pic", "w")
 fd.write(s)
 fd.close()
+
+print len(l)
 
