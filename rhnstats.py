@@ -19,6 +19,10 @@ RLChannels = Set(["realmlinux-as4",
                   "realmlinux-as4-amd64",
                   "realmlinux-ws3-amd64",
                   "realmlinux-as3-amd64",
+                  "realmlinux-server5-i386",
+                  "realmlinux-client5-i386",
+                  "realmlinux-server5-x86_64",
+                  "realmlinux-client5-x86_64",
                  ])
 
 def parseOpts():
@@ -58,7 +62,8 @@ def populate(db, rhn):
     systems = rhn.server.system.list_user_systems(rhn.session)
 
     for system in systems:
-        sys.stderr.write("Working on: %s\n" % system["name"])
+        #sys.stderr.write("Working on: %s\n" % system["name"])
+        system["id"] = int(system["id"])
         clientid = db.addSystem(system)
         subscribedTo = []
         clients.append(clientid)
@@ -78,7 +83,7 @@ def populate(db, rhn):
         for grp in grps:
             groupid = db.addGroup(grp)
             name = grp["system_group_name"]
-            if grp["subscribed"] > 0:
+            if int(grp["subscribed"]) > 0:
                 flag = 1
                 subscribedTo.append(groupid)
 
