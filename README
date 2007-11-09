@@ -1,0 +1,14 @@
+RHN Tools
+=========
+
+These are a collection of tools I've written or hacked together to
+help maintain NCSU's RHN Satellite.  Each file has a description about
+what it does.  
+
+The rhnstats/ directory contains code that generates a web page, CSV,
+and raw SQLite database with some RHN statistics about where machines
+are grouped.
+
+Jack Neely <jjneely@ncsu.edu>
+2007//11/09
+
