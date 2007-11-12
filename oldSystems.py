@@ -26,6 +26,23 @@ from datetime import date
 from datetime import timedelta
 from rhnapi import RHNClient
 
+# Stolen from Yum
+# Copyright 2005 Duke University
+def userconfirm():
+    """gets a yes or no from the user, defaults to No"""
+
+    while True:            
+        choice = raw_input('Is this ok [y/N]: ')
+        choice = choice.lower()
+        if len(choice) == 0 or choice[0] in ['y', 'n']:
+            break
+
+    if len(choice) == 0 or choice[0] != 'y':
+        return False
+    else:            
+        return True
+# end stealage
+
 def parseDate(s):
     tuple = time.strptime(s, "%Y-%m-%d")
     return date.fromtimestamp(time.mktime(tuple))
@@ -37,7 +54,11 @@ def cliOptions():
     parser.add_option("-d", "--days", action="store", default=30,
                       type="int", dest="days", help="Your RHN server.")
     parser.add_option("--delete", action="store_true", default=False,
-                      dest="delete", help="Delete these registrations from RHN")
+                      dest="delete", 
+                      help="Delete these registrations from RHN.")
+    parser.add_option("--noconfirm", action="store_true", default=False,
+                      dest="noconfirm", 
+                      help="Don't ask for delete confirmation.")
 
     if len(sys.argv) == 1:
         parser.print_help()
@@ -71,10 +92,17 @@ def search(rhn, days):
 
     return oldsystems
 
-def delete(rhn, list):
+def delete(rhn, list, noconfirm=False):
     for server in list:
         print "Removing %s..." % server["name"]
-        rhn.system.deleteSystems(int(server["id"]))
+        if noconfirm or userconfirm():
+            ret = rhn.server.system.deleteSystems(rhn.session,
+                                                  int(server["id"]))
+            if ret != 1:
+                print "Removing %s failed with error code: %s" % \
+                        (server["name"], ret)
+        else:
+            print "Skipping %s" % server["name"]
 
 def main():
 
@@ -99,7 +127,7 @@ def main():
     if o.delete:
         print "Going to delete these registrations.  Hit ^C to abort now!"
         time.sleep(5)
-        delete(rhn, list)
+        delete(rhn, list, o.noconfirm)
 
 if __name__ == "__main__":
     main()
