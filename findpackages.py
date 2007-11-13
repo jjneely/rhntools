@@ -26,7 +26,7 @@ import string
 from types import IntType, FloatType, StringType
 from rhnapi import RHNClient
 
-TreeLocation = "/export/trees"
+TreeLocation = "/var/satellite/yum"
 PackageRoot = "/var/satellite/redhat"
 PackageDirs = os.listdir(PackageRoot)
 
@@ -58,8 +58,32 @@ def stringToVersion(verstring):
         release = None
     return (epoch, version, release)
 
+def match(string, unknown, epsilon = 0.0001):
+    # Does the string evaluate to the unknown typed value close enough
+    # to be equal?
+
+    if isinstance(unknown, StringType):
+        return string == unknown
+
+    if isinstance(unknown, IntType):
+        try: 
+            i = int(string)
+        except ValueError: 
+            return False
+        return unknown == i
+
+    if isinstance(unknown, FloatType):
+        try: 
+            f = float(string)
+        except ValueError: 
+            return False
+        return (f - epsilon) <= unknown <= (f + epsilon)
+
+    print "Unknown package EVR value %s of type %s could not be matched to %s" \
+            % (unknown, type(unknown), string)
+    return False
+
 def bruteForceFind(p):
-    epsilon = 0.0001
     for dir in PackageDirs:
         if dir.startswith('.'):
             continue
@@ -70,59 +94,23 @@ def bruteForceFind(p):
 
         for evr in [os.path.basename(i) for i in os.listdir(namedir)]:
             e, v, r = stringToVersion(evr)
+            print "EVR: (%s, %s, %s)" % (e, v, r)
 
             # Epoch
             if evr.find(':') == -1:
                 # The evr directory doesn't contain the epoch field
                 pass
-            elif p['package_epoch'] == "" and e in [0, "0", ""]:
+            elif p['package_epoch'] == "" and e == "0":
                 pass
-            elif p['package_epoch'] == int(e):
+            elif match(e, p['package_epoch']):
                 pass
             else:
                 continue
 
             # Version
-            if isinstance(p['package_version'], StringType):
-                if v == p['package_version']:
-                    pass
-                else:
-                    continue
-            elif isinstance(p['package_version'], IntType):
-                try: i = int(v)
-                except ValueError: continue
-                if p['package_version'] == i:
-                    pass
-                else:
-                    continue
-            elif isinstance(p['package_version'], FloatType):
-                try: f = float(v)
-                except ValueError: continue
-                if f - epsilon <= p['package_version'] <= f + epsilon:
-                    pass
-                else:
-                    continue
-
-            # Release
-            if isinstance(p['package_release'], StringType):
-                if r == p['package_release']:
-                    pass
-                else:
-                    continue
-            elif isinstance(p['package_release'], IntType):
-                try: i = int(r)
-                except ValueError: continue
-                if p['package_release'] == i:
-                    pass
-                else:
-                    continue
-            elif isinstance(p['package_release'], FloatType):
-                try: f = float(r)
-                except ValueError: continue
-                if f - epsilon <= p['package_release'] <= f + epsilon:
-                    pass
-                else:
-                    continue
+            if not (match(v, p['package_version']) and
+               match(r, p['package_release'])):
+                continue
 
             # If we are here then we have a directory name that matched
             bindir = os.path.join(namedir, evr, p['package_arch_name'])
@@ -152,16 +140,16 @@ def bruteForceFind(p):
     print "Error:  Could not find packages: %s" % str(p)
     return None, None
 
-def findRPM(path):
-    for dir in PackageDirs:
-        if dir.startswith('.'):
-            continue
-
-        location = os.path.join(PackageRoot, dir, path)
-        if os.path.exists(location):
-            return location
-
-    return None
+#def findRPM(path):
+#    for dir in PackageDirs:
+#        if dir.startswith('.'):
+#            continue
+#
+#        location = os.path.join(PackageRoot, dir, path)
+#        if os.path.exists(location):
+#            return location
+#
+#    return None
 
 def buildTreeUsing(label, rpm, srpm):
     if rpm == None:
