@@ -23,10 +23,10 @@ import os.path
 import sys
 import config
 import string
-from types import IntType, FloatType, StringType
+from types import IntType, FloatType, StringType, LongType
 from rhnapi import RHNClient
 
-TreeLocation = "/var/satellite/yum"
+TreeLocation = "/var/satellite/yum/channels"
 PackageRoot = "/var/satellite/redhat"
 PackageDirs = os.listdir(PackageRoot)
 
@@ -37,7 +37,7 @@ def stringToVersion(verstring):
     i = string.find(verstring, ':')
     if i != -1:
         try:
-            epoch = string.atol(verstring[:i])
+            epoch = verstring[:i]
         except ValueError:
             # look, garbage in the epoch field, how fun, kill it
             epoch = '0' # this is our fallback, deal
@@ -65,7 +65,7 @@ def match(string, unknown, epsilon = 0.0001):
     if isinstance(unknown, StringType):
         return string == unknown
 
-    if isinstance(unknown, IntType):
+    if isinstance(unknown, IntType) or isinstance(unknown, LongType):
         try: 
             i = int(string)
         except ValueError: 
@@ -94,13 +94,15 @@ def bruteForceFind(p):
 
         for evr in [os.path.basename(i) for i in os.listdir(namedir)]:
             e, v, r = stringToVersion(evr)
-            print "EVR: (%s, %s, %s)" % (e, v, r)
+            #print "Directory: %s + %s" % (namedir, evr)
+            #print "EVR: (%s, %s, %s)" % (e, v, r)
+            #print "%s, %s, %s" % (type(e), type(v), type(r))
 
             # Epoch
             if evr.find(':') == -1:
-                # The evr directory doesn't contain the epoch field
+                # The directory doesn't include the epoch -- pray with me now
                 pass
-            elif p['package_epoch'] == "" and e == "0":
+            elif p['package_epoch'].strip() == "" and e == "0":
                 pass
             elif match(e, p['package_epoch']):
                 pass
@@ -113,7 +115,7 @@ def bruteForceFind(p):
                 continue
 
             # If we are here then we have a directory name that matched
-            bindir = os.path.join(namedir, evr, p['package_arch_name'])
+            bindir = os.path.join(namedir, evr, p['package_arch_label'])
             srcdir = os.path.join(namedir, evr, 'SRPMS/')
             binpath = None
             srcpath = None
@@ -124,7 +126,7 @@ def bruteForceFind(p):
                 print "Found packages but arch directory missing?"
                 continue
             for file in os.listdir(bindir):
-                if file.endswith("%(package_arch_name)s.rpm" % p):
+                if file.endswith("%(package_arch_label)s.rpm" % p):
                     binpath = os.path.join(bindir, file)
                     break
 
@@ -139,17 +141,6 @@ def bruteForceFind(p):
     
     print "Error:  Could not find packages: %s" % str(p)
     return None, None
-
-#def findRPM(path):
-#    for dir in PackageDirs:
-#        if dir.startswith('.'):
-#            continue
-#
-#        location = os.path.join(PackageRoot, dir, path)
-#        if os.path.exists(location):
-#            return location
-#
-#    return None
 
 def buildTreeUsing(label, rpm, srpm):
     if rpm == None:
@@ -171,7 +162,20 @@ def buildTreeUsing(label, rpm, srpm):
         os.makedirs(dir, 0755)
     if not os.path.exists(location):
         os.symlink(srpm, location)
-    
+
+def havePackage(chan, p):
+    # Check and see if our link farm has a matching package
+    # We are going to take a good guess at the package name
+    rpm = "%(package_name)s-%(package_version)s-%(package_release)s.%(package_arch_label)s.rpm" % p
+
+    return os.path.exists(os.path.join(TreeLocation, chan, 'RPMS', rpm))
+
+def test():
+    p = {'package_arch_label': 'noarch', 'package_name': 'dejagnu', 'package_epoch': '1', 'package_version': '1.4.4', 'package_release': '2', 'package_id': 3066, 'package_last_modified': '2006-08-22 22:00:25'}
+    q = {'package_arch_label': 'x86_64', 'package_name': 'sendmail-doc', 'package_epoch': '100', 'package_version': '8.12.11', 'package_release': '3.3.ncsu', 'package_id': 8555, 'package_last_modified': '2007-04-04 15:42:15'}
+
+    print bruteForceFind(q)
+ 
 def main():
     rhncfg = config.RHNConfig()
     rhn = RHNClient(rhncfg.getURL())
@@ -184,13 +188,8 @@ def main():
                                                   chan['channel_label'])
 
         for p in packages:
-            #rpm, srpm = buildPath(p, False)
-            #location = findRPM(rpm)
-            #source = findRPM(srpm)
-            #if location == None:
-            #    rpm, srpm = buildPath(p, True)
-            #    location = findRPM(rpm)
-            #    source = findRPM(srpm)
+            if havePackage(chan['channel_label'], p):
+                continue
 
             location, source = bruteForceFind(p)
 
