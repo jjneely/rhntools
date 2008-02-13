@@ -18,6 +18,12 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 
+# Run this script on the RHN Satellite.  It will use the RHN API to
+# learn about all the channels and packages and will create
+# directories of <channel name>/RPMS that contain symlinks to the
+# rpms in the /var/satellite/redhat store.  You can then run
+# yum-arch/createrepo on the generated directories.
+
 import os
 import os.path
 import sys
@@ -26,7 +32,10 @@ import string
 from types import IntType, FloatType, StringType, LongType
 from rhnapi import RHNClient
 
+# Where do we build the symlink farm?
 TreeLocation = "/var/satellite/yum/channels"
+
+# This is where the RHN Satellite package store is mounted.
 PackageRoot = "/var/satellite/redhat"
 PackageDirs = os.listdir(PackageRoot)
 
@@ -37,7 +46,7 @@ def stringToVersion(verstring):
     i = string.find(verstring, ':')
     if i != -1:
         try:
-            epoch = verstring[:i]
+            epoch = verstring[:i] # XXX: don't return longs, always strings
         except ValueError:
             # look, garbage in the epoch field, how fun, kill it
             epoch = '0' # this is our fallback, deal
@@ -60,7 +69,8 @@ def stringToVersion(verstring):
 
 def match(string, unknown, epsilon = 0.0001):
     # Does the string evaluate to the unknown typed value close enough
-    # to be equal?
+    # to be equal?  Older RHN APIs returned floats in some places and
+    # caused interesting round off problems.
 
     if isinstance(unknown, StringType):
         return string == unknown
@@ -84,6 +94,9 @@ def match(string, unknown, epsilon = 0.0001):
     return False
 
 def bruteForceFind(p):
+    # This is where the magic is.  Follow down the directory tree and
+    # find RPMs that look like they match the package as described by RHN
+
     for dir in PackageDirs:
         if dir.startswith('.'):
             continue
@@ -177,6 +190,7 @@ def test():
     print bruteForceFind(q)
  
 def main():
+    # This reads a 'rhn.conf' file for the user/password/uri
     rhncfg = config.RHNConfig()
     rhn = RHNClient(rhncfg.getURL())
     rhn.connect(rhncfg.getUserName(), rhncfg.getPassword())
