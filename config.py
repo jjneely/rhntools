@@ -22,9 +22,9 @@ class Configuration(object):
 
     type = ""
 
-    def __init__(self):
+    def __init__(self, cfgs=['rhn.conf']):
         self.cfg = ConfigParser.ConfigParser()
-        files = self.cfg.read(['rhn.conf'])
+        files = self.cfg.read(cfgs)
 
         #if files == None:
         #    raise Exception("Configuration file not found.")
