@@ -16,6 +16,8 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 
+import time
+
 class RHNStore(object):
     
     def __init__(self, sdb):
@@ -26,6 +28,14 @@ class RHNStore(object):
     def commit(self):
         self.conn.commit()
         
+    def __parseTime(self, s):
+        # Added for RHN Sat 5.1 which returns times in a fucked up format
+        if s.find('T') == -1:
+            return s
+        # RHN's version of ISO8601: 20080924T14:28:37
+        struct_time = time.strptime(s, '%Y%m%dT%H:%M:%S')
+        return time.strftime('%Y-%m-%d %H:%M:%S', struct_time)
+
     def addSystem(self, system):
         q1 = """select clientid from CLIENTS where rhnsid = %s"""
         q2 = """insert into CLIENTS (rhnsid, name, lastcheckin) values
@@ -34,12 +44,13 @@ class RHNStore(object):
 
         self.c.execute(q1, (system["id"],))
         ret = self.c.fetchone()
+        datestr = self.__parseTime(str(system["last_checkin"]))
 
         if ret == None:
             self.c.execute(q2, (system["id"], system["name"],
-                                system["last_checkin"]))
+                                datestr))
         else:
-            self.c.execute(q3, (system["last_checkin"], ret[0]))
+            self.c.execute(q3, (datestr, ret[0]))
             return ret[0]
 
         self.c.execute(q1, (system["id"],))
