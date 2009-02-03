@@ -22,6 +22,7 @@ import re
 import sys
 import xmlrpclib
 import time
+import types
 import optparse
 from sets import Set
 from datetime import date
@@ -46,7 +47,12 @@ def userconfirm():
 # end stealage
 
 def parseDate(s):
-    tuple = time.strptime(s, "%Y-%m-%d")
+    if isinstance(s, types.StringType):
+        tuple = time.strptime(s, "%Y-%m-%d")
+    else:
+        # RHN's version of ISO8601: 20080924T14:28:37
+        tuple = time.strptime(s.__str__(), '%Y%m%dT%H:%M:%S')
+
     return date.fromtimestamp(time.mktime(tuple))
 
 def cliOptions():
