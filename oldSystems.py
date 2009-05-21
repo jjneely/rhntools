@@ -61,9 +61,12 @@ def cliOptions():
 
     parser.add_option("-d", "--days", action="store", default=30,
                       type="int", dest="days", help="Your RHN server.")
+    parser.add_option("-i", "--include", action="store", default=None,
+                      type="string", dest="include",
+                      help="Regex of groups to include. Conflicts with -e")
     parser.add_option("-e", "--exclude", action="store", default=None,
                       type="string", dest="exclude",
-                      help="Regex of groups to ingore.")
+                      help="Regex of groups to exclude. Conflicts with -i")
     parser.add_option("--delete", action="store_true", default=False,
                       dest="delete", 
                       help="Delete these registrations from RHN.")
@@ -71,15 +74,11 @@ def cliOptions():
                       dest="noconfirm", 
                       help="Don't ask for delete confirmation.")
 
-    if len(sys.argv) == 1:
-        parser.print_help()
-
-    opts, args = parser.parse_args(sys.argv)
-
-    if len(args) != 2:
-        print "You must provide the URL to your RHN server."
+    if len(sys.argv) < 2:
         parser.print_help()
         sys.exit(1)
+
+    opts, args = parser.parse_args(sys.argv)
 
     # first arg is name of the program
     opts.server = args[1]
@@ -95,15 +94,44 @@ def getGroups(rhn, serverid):
 
     return list
 
-def search(rhn, days, excludes):
+def getSystemByID(id, systems):
+    """Return the system dict that matches the given system id."""
+    for s in systems:
+        if int(s['id']) == id:
+            return s
+    return None
+
+def search(rhn, days, excludes, includes):
     s = rhn.server
     delta = timedelta(days=days)
     today = date.today()
     oldsystems = []
-    systems = s.system.list_user_systems(rhn.session)
+    doExcludes = len(excludes) > 0
+    doIncludes = len(includes) > 0
+
+    # We can't do both.  This is checked for earlier in the codebase as well
+    assert not (doExcludes and doIncludes)
+
+    if doIncludes:
+        systems = []
+        for g in includes:
+            systems.extend(s.systemgroup.listSystems(rhn.session, g))
+        for system in systems:
+            # no last_checkin field...*grumble*...or 'name' field
+            # Gar!!!
+            ids = s.system.getId(rhn.session, system['profile_name'])
+            match = getSystemByID(system['id'], ids)
+            if match is None:
+                print "RHN told me ID %s exists and then denied its existance!"\
+                        % id
+                continue
+            system['name'] = system['profile_name']
+            system['last_checkin'] = match['last_checkin']
+    else:
+        systems = s.system.list_user_systems(rhn.session)
 
     for system in systems:
-        if len(excludes) > 0:
+        if doExcludes:
             subed = getGroups(rhn, int(system['id']))
             intersection = Set(subed).intersection(excludes)
             if len(intersection) > 0:
@@ -135,6 +163,12 @@ def findGroups(rhn, regex):
     # this gives us a list of all groups and if the system is subscribed
     # from which we build a new list of names that match the regex.
 
+    try:
+        ex = re.compile(regex)
+    except re.error:
+        print "Regular expression error: %s" % regex
+        sys.exit(1)
+
     systems = rhn.server.system.list_user_systems(rhn.session)
     if len(systems) == 0:
         raise StandardError("No systems subscribed to RHN.")
@@ -142,7 +176,7 @@ def findGroups(rhn, regex):
     groups = rhn.server.system.listGroups(rhn.session, int(systems[0]['id']))
     list = []
     for group in groups:
-        match = regex.match(group['system_group_name'])
+        match = ex.match(group['system_group_name'])
         if match != None:
             list.append(group['system_group_name'])
 
@@ -162,19 +196,22 @@ def main():
     print "Today's date = %s" % date.today().isoformat()
     print
 
-    if o.exclude:
-        try:
-            regex = re.compile(o.exclude)
-            excludes = findGroups(rhn, regex)
-        except re.error:
-            print "Regular expression error: %s" % o.exclude
-            sys.exit(1)
+    if o.exclude is not None and o.include is not None:
+        print "You may not use --include and --exclude together."
+        sys.exit(1)
+
+    if o.exclude is not None:
+        excludes = findGroups(rhn, o.exclude)
         print "Excluding Groups: %s" % excludes
     else:
         excludes = []
+    if o.include is not None:
+        includes = findGroups(rhn, o.include)
+        print "Including Groups: %s" % includes
+    else:
+        includes = []
 
-
-    list = search(rhn, o.days, excludes)
+    list = search(rhn, o.days, excludes, includes)
     for s in list:
         print s["name"]
 
