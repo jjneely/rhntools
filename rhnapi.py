@@ -21,12 +21,18 @@
 import xmlrpclib
 import sys
 import getpass
+import rhnconfig
 
 class RHNClient(object):
 
-    def __init__(self, serverURL):
+    def __init__(self, serverURL=None):
         self.url = serverURL
 
+
+    def connectFromConfig(self, configFile):
+        cfg = rhnconfig.RHNConfig(cfgs=[configFile])
+        self.url = cfg.getURL()
+        self.connect(cfg.getUserName(), cfg,getPassword())
 
     def connect(self, user=None, password=None):
         self.server = xmlrpclib.ServerProxy(self.url)
