@@ -198,12 +198,17 @@ def main():
     channels = rhn.server.channel.list_software_channels(rhn.session)
 
     for chan in channels:
+        report = True
         packages = rhn.server.channel.software.list_all_packages(rhn.session,
                                                   chan['channel_label'])
 
         for p in packages:
             if havePackage(chan['channel_label'], p):
                 continue
+
+            if report:
+                report = False
+                print chan['channel_label']
 
             location, source = bruteForceFind(p)
 
