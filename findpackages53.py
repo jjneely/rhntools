@@ -39,7 +39,8 @@ RPMFile = "%(name)s-%(version)s-%(release)s.%(arch_label)s.rpm"
 
 def main():
     try:
-        rhncfg = config.RHNConfig()
+        rhncfg = config.RHNConfig(cfgs=['/etc/rhntools.conf', 'rhn.conf', 
+                                        'rhntools.conf'])
         rhn = RHNClient(rhncfg.getURL())
         rhn.connect(rhncfg.getUserName(), rhncfg.getPassword())
     except Exception:
