@@ -35,6 +35,7 @@ from rhnapi import RHNClient
 
 # Where do we build the symlink farm?
 TreeLocation = "/var/satellite/yum/channels"
+RPMFile = "%(name)s-%(version)s-%(release)s.%(arch)s.rpm"
 
 def main():
     rhncfg = config.RHNConfig()
@@ -64,18 +65,26 @@ def main():
                        rhn.session, c['label'])
 
         for p in packages:
+            target = os.path.join(cLocation, RPMFile % p)
+            if os.path.isfile(target):
+                # Looks like the RPM is already here
+                # avoid calling getDetails()
+                # XXX: Verify?
+                continue
+
             # dict of many details, like 'path'
-            start = time.time()
+            # getDetails takes 0.5 seconds to return
             details = rhn.server.packages.getDetails(rhn.session, p['id'])
-            end = time.time()
-            print "%s: packages.getDetails returned in % seconds" \
-                    % (time.asctime(), end-start)
             abs = os.path.join('/var/satellite', details['path'])
 
             if not os.path.isfile(abs):
                 print "%s: %s does not exist." % (sys.argv[0], abs)
                 print "%s: Are you running this on the Satellite?" % sys.argv[0]
                 sys.exit(2)
+
+            if details['file'] != RPMFile % p:
+                print "Warning: RPM File names are weird: %s != %s" \
+                        % (details['file'], RPMFile % p)
 
             target = os.path.join(cLocation, details['file'])
             if os.path.exists(target):
