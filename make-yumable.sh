@@ -3,7 +3,7 @@
 # Where is the yum tree start
 YUMROOT=/var/satellite/yum/rhel
 
-cd /root/bin
+cd /usr/share/rhntools
 
 if [ "$1" = "-f" ] ; then
     CHANNELS=""
@@ -15,7 +15,7 @@ if [ "$1" = "-f" ] ; then
     VERBOSE=true
 else
     # This builds the package trees and outputs channels that changed
-    CHANNELS=`python findpackages.py`
+    CHANNELS=`python findpackages53.py`
     VERBOSE=false
 fi
 
@@ -24,8 +24,11 @@ DONE=""
 echo "Starting Creatrepo runs:"
 date
 
-#OPTS="--skip-stat --update"
-OPTS=""
+if [ "$1" = "-f" ] ; then
+    OPTS="--database"
+else
+    OPTS="--skip-stat --update --checkts --database"
+fi
 
 for CHANNEL in $CHANNELS ; do
     for REPO in `find $YUMROOT -type l -name $CHANNEL` ; do
@@ -35,6 +38,7 @@ for CHANNEL in $CHANNELS ; do
         fi
 
         DONE="$DONE $DIR"
+        [ -d $DIR/cache ] || mkdir $DIR/cache
         if $VERBOSE ; then
             echo "Updating repo in $DIR..."
             createrepo $OPTS -c $DIR/cache $DIR
