@@ -38,9 +38,14 @@ TreeLocation = "/var/satellite/yum/channels"
 RPMFile = "%(name)s-%(version)s-%(release)s.%(arch_label)s.rpm"
 
 def main():
-    rhncfg = config.RHNConfig()
-    rhn = RHNClient(rhncfg.getURL())
-    rhn.connect(rhncfg.getUserName(), rhncfg.getPassword())
+    try:
+        rhncfg = config.RHNConfig()
+        rhn = RHNClient(rhncfg.getURL())
+        rhn.connect(rhncfg.getUserName(), rhncfg.getPassword())
+    except Exception:
+        sys.stderr.write("%s: Error loading configuration\n"
+                         % sys.argv[0])
+        sys.exit(3)
     
     #print "RHN API Version: %s" % rhn.server.api.system_version()
     #print "Today's date = %s" % datetime.date.today().isoformat()
@@ -66,7 +71,7 @@ def main():
 
         for p in packages:
             pfile = RPMFile % p
-            sys.stderr.write("%s: %s\n" % (c['label'], pfile)
+            sys.stderr.write("%s: %s\n" % (c['label'], pfile))
             target = os.path.join(cLocation, pfile)
             if os.path.isfile(target):
                 # Looks like the RPM is already here
