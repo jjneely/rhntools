@@ -26,6 +26,7 @@
 
 import os
 import sys
+import time
 import os.path
 import datetime
 import config
@@ -64,7 +65,11 @@ def main():
 
         for p in packages:
             # dict of many details, like 'path'
+            start = time.time()
             details = rhn.server.packages.getDetails(rhn.session, p['id'])
+            end = time.time()
+            print "%s: packages.getDetails returned in % seconds" \
+                    % (time.asctime(), end-start)
             abs = os.path.join('/var/satellite', details['path'])
 
             if not os.path.isfile(abs):
