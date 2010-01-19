@@ -17,6 +17,6 @@ else
     STAT="$HOST\tsat-sync\t2\tSatellite Sync was NOT successful\n"
 fi
 
-echo -e "$STAT" | /root/bin/send_nsca.pl -H uni04sm.unity.ncsu.edu
-echo -e "$STAT" | /root/bin/send_nsca.pl -H uni05sm.unity.ncsu.edu
+echo -e "$STAT" | send_nsca.pl -H uni04sm.unity.ncsu.edu
+echo -e "$STAT" | send_nsca.pl -H uni05sm.unity.ncsu.edu
 
