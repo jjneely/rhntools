@@ -94,7 +94,8 @@ def populate(db, rhn):
         # already subscribed sub channels.
         channels =  rhn.server.system.list_child_channels(rhn.session, 
                                                           system["id"])
-        chanLabels = Set([ i['LABEL'] for i in channels ])
+        print channels
+        chanLabels = Set([ i['label'] for i in channels ])
 
         if len(RLChannels.intersection(chanLabels)) == 0:
             rlclients.append(clientid)
