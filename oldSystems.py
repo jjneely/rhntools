@@ -212,8 +212,11 @@ def main():
         includes = []
 
     list = search(rhn, o.days, excludes, includes)
+    print "%40s %10s" % ("Profile Name", "ID")
+    print '='*51
     for s in list:
-        print s["name"]
+        l = len(s["name"])
+        print "%40s %10s" % (s["name"], s["id"])
 
     print "There are %s inactive systems." % len(list)
 
