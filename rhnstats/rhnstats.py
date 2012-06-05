@@ -23,114 +23,115 @@ import sys
 # The rhnapi module is a directory above
 sys.path.append("../")
 
+from genshi.template import TemplateLoader
 from rhnapi import RHNClient
-import rhndb
-import pysqlite
+import cPickle as pickle
+import os.path
 import config
 import time
 import optparse
-import kid
-from sets import Set
+import re
 
-# What channels define Realm Linux?
-RLChannels = Set(["realmlinux-as4",
-                  "realmlinux-ws4",
-                  "realmlinux-as3",
-                  "realmlinux-ws3",
-                  "realmlinux-ws4-amd64",
-                  "realmlinux-as4-amd64",
-                  "realmlinux-ws3-amd64",
-                  "realmlinux-as3-amd64",
-                  "realmlinux-server5-i386",
-                  "realmlinux-client5-i386",
-                  "realmlinux-server5-x86_64",
-                  "realmlinux-client5-x86_64",
-                 ])
+clients = {}
+groups  = {}
 
 def parseOpts():
     opts = optparse.OptionParser()
     opts.add_option("", "--csv", action="store_true", default=False,
                     dest="csv", help="Output in CSV Format")
-    opts.add_option("", "--localdb", action="store_true", default=False,
+    opts.add_option("", "--localdb", action="store_true", default=False, 
                     dest="localdb", help="Don't Query RHN")
-
     opts, args = opts.parse_args(sys.argv)
     return opts
         
 def main():
+    global clients, groups
 
     opts = parseOpts()
     dbcfg = config.DBConfig()
     rhncfg = config.RHNConfig()
 
-    sdb = pysqlite.PySqliteDB(dbcfg)
-    db = rhndb.RHNStore(sdb)
-
-    if not opts.localdb:
+    if opts.localdb and os.path.exists("rhnstats.db"):
+        fd = open("rhnstats.db")
+        clients, groups = pickle.load(fd)
+        fd.close()
+    else:
         rhn = RHNClient(rhncfg.getURL())
         rhn.connect(rhncfg.getUserName(), rhncfg.getPassword())
 
-        populate(db, rhn)
+        populate(rhn)
+        fd = open("rhnstats.db", "w")
+        pickle.dump((clients, groups), fd, -1)
+        fd.close()
 
     if opts.csv:
         print "Writing CSV file..."
-        doCSV(db)
+        doCSV()
     else:
-        doHTML(db)
+        doHTML()
 
-def populate(db, rhn):
-    clients = []
-    rlclients = []
+def populate(rhn):
+    global clients, groups
     systems = rhn.server.system.list_user_systems(rhn.session)
 
     for system in systems:
         #sys.stderr.write("Working on: %s\n" % system["name"])
-        system["id"] = int(system["id"])
-        clientid = db.addSystem(system)
+        client = {}
+        client["id"] = int(system["id"])
+        client["name"] = system["name"]
+        client["last_checkin"] = system["last_checkin"]
         subscribedTo = []
-        clients.append(clientid)
 
         # Sub Channels available for subscription, does not include
         # already subscribed sub channels.
         channels =  rhn.server.system.list_child_channels(rhn.session, 
                                                           system["id"])
-        chanLabels = Set([ i['label'] for i in channels ])
+        chanLabels = [ i['label'] for i in channels ]
+        client["channels"] = chanLabels
 
-        if len(RLChannels.intersection(chanLabels)) == 0:
-            rlclients.append(clientid)
+        if len([ i for i in chanLabels if re.search("^realmlinux", i) ]) > 0:
+            client["RL"] = True
+        else:
+            client["RL"] = False
 
         grps = rhn.server.system.list_groups(rhn.session, system["id"])
-        flag = 0
-    
+   
+        client["subscribed"] = []
         for grp in grps:
-            groupid = db.addGroup(grp)
-            name = grp["system_group_name"]
+            gid = int(grp["sgid"])
             if int(grp["subscribed"]) > 0:
-                flag = 1
-                subscribedTo.append(groupid)
+                if gid not in groups:
+                    groups[gid] = {"name" : grp["system_group_name"],
+                                   "count": 0, 
+                                   "rl"   : 0, }
+                groups[gid]["count"] = groups[gid]["count"] + 1
+                if client["RL"]:
+                    groups[gid]["rl"] = groups[gid]["rl"] + 1
 
-        db.subscribeGroup(clientid, subscribedTo)
+                client["subscribed"].append(gid)
 
-    db.markActive(clients)
-    db.markRL(rlclients)
-    db.commit()
+        clients[client["id"]] = client
 
-def doCSV(db):
+def doCSV():
     file = "rhn.csv"
-    table = [["Name", "Number of Licenses", "Number of Realm Linux Clients",
-              "Percentage of Total Licnese"]]
+    title = ["Name", "Number of Licenses", "Number of Realm Linux Clients",
+             "Percentage of Total Licnese"]
+    table = []
 
-    total = db.getTotalCount()
+    total = len(clients)
 
-    for group in db.getGroups():
+    for gid in groups.keys():
         row = []
-        row.append(db.getGroupName(group))
-        row.append(db.getGroupCount(group))
-        row.append(db.getGroupRLCount(group))
-        p = int(10000 * float(db.getGroupCount(group)) / float(total))
-        row.append(p / 100.0)
+        row.append(groups[gid]["name"])
+        row.append(groups[gid]["count"])
+        row.append(groups[gid]["rl"])
+        p = float(groups[gid]["count"]) / float(total)
+        row.append(p * 100)
 
         table.append(row)
+
+    table.sort(lambda x,y: cmp(x[0], y[0]))
+    table.insert(0, title)
 
     fd = open(file, 'w')
     for row in table:
@@ -144,30 +145,39 @@ def doCSV(db):
     fd.write("\nTotal Licenes,%s" % total)
     fd.close()
     
-def doHTML(db):
+def doHTML():
     file = "rhn.phtml"
-    templatefile = "template.kid"
+    templatefile = "template.genshi"
+    loader = TemplateLoader([os.path.dirname(__file__)])
+    template = loader.load(templatefile)
+
     table = []
+    total = len(clients)
+    totalRL = 0
 
-    total = db.getTotalCount()
-
-    for group in db.getGroups():
+    for gid in groups.keys():
         d = {}
-        d["name"] = db.getGroupName(group)
-        d["count"] = db.getGroupCount(group)
-        d["rlcount"] = db.getGroupRLCount(group)
-        p = int(10000 * float(d["count"]) / float(total))
-        d["percent"] = p / 100.0
+        d["name"] = groups[gid]["name"]
+        d["count"] = groups[gid]["count"]
+        d["rlcount"] = groups[gid]["rl"]
+        p = float(groups[gid]["count"]) / float(total)
+        d["percent"] = p * 100
         
         table.append(d)
+        totalRL = totalRL + groups[gid]["rl"]
 
-    template = kid.Template(file=templatefile)
-    template.total = total
-    template.totalrl = db.getTotalRLCount()
-    template.table = table
-    template.date = time.strftime("%A %B %d %H:%M:%S %Z %Y")
+    table.sort(lambda x,y: cmp(x["name"], y["name"]))
 
-    template.write(file, fragment=True)
+    stream = template.generate(
+        total=total,
+        totalrl = totalRL,
+        table = table,
+        date = time.strftime("%A %B %d %H:%M:%S %Z %Y"),
+        )
+
+    fd = open(file, 'w')
+    fd.write(stream.render("xhtml"))
+    fd.close()
     
 
 if __name__ == "__main__":

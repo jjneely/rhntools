@@ -1,6 +1,6 @@
 <?xml version='1.0' encoding='utf-8'?>
 <html xmlns="http://www.w3.org/1999/xhtml"
-      xmlns:py="http://purl.org/kid/ns#">
+  xmlns:py="http://genshi.edgewall.org/">
 <head>
 <title>RHN Usage Statistics</title>
 <?php
@@ -34,14 +34,12 @@ include("../Templates/dochead.php");
     <th>Percentage</th>
   </tr>
 
-  <div py:for="foo in table">
-    <tr>
-      <td py:content="foo['name']">College of Underwater Basket Weaving</td>
-      <td py:content="foo['count']">42</td>
-      <td py:content="foo['rlcount']">41</td>
-      <td py:content="foo['percent']">86.4</td>
-    </tr>
-  </div>
+  <tr py:for="foo in table">
+    <td py:content="foo['name']">College of Underwater Basket Weaving</td>
+    <td py:content="foo['count']">42</td>
+    <td py:content="foo['rlcount']">41</td>
+    <td py:content="'%.2f %%' % foo['percent']">86.4</td>
+  </tr>
 </table>
 
   <?php
