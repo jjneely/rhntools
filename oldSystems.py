@@ -47,8 +47,12 @@ def userconfirm():
 # end stealage
 
 def parseDate(s):
+    formats = ["%Y-%m-%d", "%Y-%m-%d %H:%M:%S.0"]
     if isinstance(s, types.StringType):
-        tuple = time.strptime(s, "%Y-%m-%d")
+        try:
+            tuple = time.strptime(s, "%Y-%m-%d")
+        except ValueError:
+            tuple = time.strptime(s, "%Y-%m-%d %H:%M:%S.0")
     else:
         # RHN's version of ISO8601: 20080924T14:28:37
         tuple = time.strptime(s.__str__(), '%Y%m%dT%H:%M:%S')
